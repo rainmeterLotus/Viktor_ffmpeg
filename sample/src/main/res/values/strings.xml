@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Viktor_ffmpeg</string>
+
+    <string name="str_all_medias">All Medias</string>
+
+    <string name="str_text_video">Video</string>
+    <string name="str_text_photo">Photo</string>
+    <string name="str_text_no_find_video">not find videos</string>
+    <string name="str_text_no_find_photo">not find photos</string>
+
+
+
+    <string name="done">Done</string>
+</resources>
