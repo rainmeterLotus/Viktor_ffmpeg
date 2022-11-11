@@ -33,7 +33,6 @@ int ViktorVideoDecode::decode_start(ViktorContext *context,CClip *clip,bool isNo
                         context->viddec.wait_decode_cond->wait_for(lock, std::chrono::milliseconds(10));
                         continue;
                     }
-
                     if (context->viddec.decode_state == 0){
                         context->viddec.avctx = clip->video_in_codec_ctx;
                         context->viddec.decode_state = 1;
@@ -91,7 +90,7 @@ int ViktorVideoDecode::video_thread(void *arg,void *context){
          *  if (context->viddec.decoder_tid){
          *      return ret;
          *  }
-         *  如果线程已经启动不再走video_thread（解码第二个片段时），也就导致video_clip不会再次赋值，所以在下面的if内赋值
+         *  如果线程已经启动不再走video_thread（解码第二个片段时），也就导致video_clip不会再次赋值，所以在下面的if内再次赋值
          */
         if (video_clip != vikt_video_decode->current_clip){
             VIKTOR_LOGE("video_thread video_clip != current_clip");

@@ -15,6 +15,7 @@ import com.bumptech.glide.request.RequestOptions
 import com.viktor.fg.R
 import com.viktor.fg.loader.Media
 import com.viktor.fg.loader.CursorAdapter
+import com.viktor.fg.loader.SelectMedia
 import com.viktor.fg.util.ViktorUtil
 import java.io.File
 
@@ -23,8 +24,8 @@ import java.io.File
  */
 class AlbumMediaAdapter(c: Cursor?, private val size:Int = 0) : CursorAdapter<AlbumMediaAdapter.MediaHolder>(c) {
 
-    var onMediaClick:((path:String,isAdd:Boolean) -> Unit)? = null
-    private val selectMediaList = ArrayList<String>()
+    var onMediaClick:((selectMedia:SelectMedia,isAdd:Boolean) -> Unit)? = null
+    private val selectMediaList = ArrayList<SelectMedia>()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MediaHolder {
         return MediaHolder(LayoutInflater.from(parent.context).inflate(R.layout.layout_media_item, parent, false))
@@ -34,7 +35,7 @@ class AlbumMediaAdapter(c: Cursor?, private val size:Int = 0) : CursorAdapter<Al
         holder.binder(Media.valueOf(cursor))
     }
 
-    fun refreshHasMediaSelect(hasMediaList:List<String>?){
+    fun refreshHasMediaSelect(hasMediaList:List<SelectMedia>?){
         hasMediaList?.forEach { path->
             selectMediaList.add(path)
         }
@@ -86,20 +87,23 @@ class AlbumMediaAdapter(c: Cursor?, private val size:Int = 0) : CursorAdapter<Al
             }
 
             val path = ViktorUtil.obtainPathByUri(itemView.context, item.contentUri) ?: return
-            ivCheck.isSelected = selectMediaList.contains(path)
+            ivCheck.isSelected = selectMediaList.find {
+                it.path == path
+            } != null
             ivThumbnail.setOnClickListener {
                 if (TextUtils.isEmpty(path) || !File(path).exists()) {
                     return@setOnClickListener
                 }
                 ivCheck.isSelected = !ivCheck.isSelected
 
+                val selectMedia = SelectMedia(path,item.duration)
                 if (ivCheck.isSelected){
-                    selectMediaList.add(path)
+                    selectMediaList.add(selectMedia)
                 } else {
-                    selectMediaList.remove(path)
+                    selectMediaList.remove(selectMedia)
                 }
 
-                onMediaClick?.invoke(path,ivCheck.isSelected)
+                onMediaClick?.invoke(selectMedia,ivCheck.isSelected)
             }
         }
 

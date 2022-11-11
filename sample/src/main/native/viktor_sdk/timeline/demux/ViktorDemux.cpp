@@ -64,12 +64,21 @@ void ViktorDemux::read_frame_thread(ViktorContext *context) {
         }
 
 
+        int is_eof = 0;
         ret = av_read_frame(ic, pkt);
         VIKTOR_LOGE("av_read_frame ret:%d", ret);
         if (ret < 0) {
             VIKTOR_LOGE("av_read_frame %s", av_err2str(ret));
             if (ret == AVERROR_EOF || avio_feof(ic->pb)) {
-                //todo 处理当前片段是否结束
+                is_eof = 1;
+                if (current_clip->m_video_index >= 0){
+                    packet_queue_put_nullpacket(&context->video_packet_q,current_clip->m_video_index);
+                }
+
+                if (current_clip->m_audio_index >= 0){
+                    packet_queue_put_nullpacket(&context->audio_packet_q,current_clip->m_audio_index);
+                }
+                goto loop;
             }
 
             //发生错误了，退出主循环
@@ -110,8 +119,8 @@ void ViktorDemux::read_frame_thread(ViktorContext *context) {
             av_packet_unref(pkt);
         }
 
-        if (current_pts > current_clip->m_end_micro_sec){
-
+        loop:
+        if (current_pts > current_clip->m_end_micro_sec || is_eof){
             if (current_clip->isLast){
                 for (;;){
                     if (context->abort_request) {

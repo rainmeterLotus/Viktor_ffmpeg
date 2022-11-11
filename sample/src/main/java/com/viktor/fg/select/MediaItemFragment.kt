@@ -14,15 +14,16 @@ import com.viktor.fg.R
 import com.viktor.fg.loader.AlbumCategory
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.viktor.fg.loader.SelectMedia
 import com.viktor.fg.util.ViktorConstants
 import kotlinx.android.synthetic.main.fragment_media_list.*
-import java.util.ArrayList
+import kotlin.collections.ArrayList
 
 class MediaItemFragment : Fragment(), AlbumMediaCallbacks {
     private val mAlbumMediaCollection = AlbumMediaManager()
     private var mAdapter: AlbumMediaAdapter? = null
 
-    var onActivityMediaClick:((path:String,isAdd:Boolean) -> Unit)? = null
+    var onActivityMediaClick:((selectMedia:SelectMedia,isAdd:Boolean) -> Unit)? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_media_list, container, false)
@@ -32,12 +33,12 @@ class MediaItemFragment : Fragment(), AlbumMediaCallbacks {
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
         mCurType = arguments?.getInt(EXTRA_MEDIA_TYPE) ?:ViktorConstants.TYPE_PHOTO
-        val hasMediaSelectList = arguments?.getStringArrayList(EXTRA_DATA)
+        val hasMediaSelectList = arguments?.getParcelableArrayList(EXTRA_DATA) ?: emptyList<SelectMedia>()
 
         val album: AlbumCategory = arguments?.getParcelable(EXTRA_ALBUM) ?: return
         mAdapter = AlbumMediaAdapter(null, getSize()).apply {
-            onMediaClick = {path,isAdd ->
-                onActivityMediaClick?.invoke(path,isAdd)
+            onMediaClick = {selectMedia,isAdd ->
+                onActivityMediaClick?.invoke(selectMedia,isAdd)
             }
             refreshHasMediaSelect(hasMediaSelectList)
         }
@@ -64,6 +65,7 @@ class MediaItemFragment : Fragment(), AlbumMediaCallbacks {
             })
         }
         activity?.let {
+            progress_bar?.visibility = View.VISIBLE
             mAlbumMediaCollection.init(it, this)
             mAlbumMediaCollection.load(album)
         }
@@ -90,6 +92,7 @@ class MediaItemFragment : Fragment(), AlbumMediaCallbacks {
     }
 
     override fun onAlbumMediaLoad(cursor: Cursor?) {
+        progress_bar?.visibility = View.GONE
         mAdapter?.changeCursor(cursor)
         val count = mAdapter?.itemCount ?: 0
         if (count > 0) {
@@ -113,11 +116,11 @@ class MediaItemFragment : Fragment(), AlbumMediaCallbacks {
         const val EXTRA_MEDIA_TYPE = "media_type"
         const val EXTRA_DATA = "data"
         const val TAG = "media_fg"
-        fun newInstance(album: AlbumCategory?, type: Int, hasMediaSelectList: ArrayList<String>): MediaItemFragment {
+        fun newInstance(album: AlbumCategory?, type: Int, hasMediaSelectList: ArrayList<SelectMedia>): MediaItemFragment {
             val fragment = MediaItemFragment()
             val args = Bundle()
             args.putParcelable(EXTRA_ALBUM, album)
-            args.putStringArrayList(EXTRA_DATA, hasMediaSelectList)
+            args.putParcelableArrayList(EXTRA_DATA, hasMediaSelectList)
             args.putInt(EXTRA_MEDIA_TYPE, type)
             fragment.arguments = args
             return fragment

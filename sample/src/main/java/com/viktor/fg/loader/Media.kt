@@ -17,10 +17,17 @@ class Media : Parcelable {
     var size = 0L
     var duration = 0L
     var displayName: String? = null
+    var isImage = false
+    var isGif = false
+    var isVideo = false
+
 
     private constructor(id: Long, mimeType: String, size: Long, duration: Long, displayName: String) {
         this.id = id
         this.mimeType = mimeType
+        this.isImage = isImage(mimeType)
+        this.isVideo = isVideo(mimeType)
+        this.isGif = isGif(mimeType)
         val contentUri: Uri
         contentUri = when {
             isImage -> {
@@ -60,11 +67,6 @@ class Media : Parcelable {
         dest.writeLong(duration)
         dest.writeString(displayName)
     }
-
-    val isImage: Boolean = isImage(mimeType)
-    val isGif: Boolean = isGif(mimeType)
-    val isVideo: Boolean = isVideo(mimeType)
-
     companion object {
         @JvmField
         val CREATOR: Parcelable.Creator<Media> = object : Parcelable.Creator<Media> {

@@ -25,13 +25,13 @@ int get_video_orientation(AVStream *videoSt) {
     }
     AVDictionaryEntry *rotate_dict = NULL;
     rotate_dict = av_dict_get(videoSt->metadata, "rotate", rotate_dict, 0);
-    VIKTOR_LOGD("-get_orientation is video rotate_dict:%p", rotate_dict);
+    VIKTOR_LOGD("get_orientation is video rotate_dict:%p", rotate_dict);
     if (!rotate_dict) {
         return 0;
     }
 
     int angle = atoi(rotate_dict->value);
-    VIKTOR_LOGD("-get_orientation is video angle:%d", angle);
+    VIKTOR_LOGD("get_orientation is video angle:%d", angle);
     return angle;
 }
 

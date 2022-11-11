@@ -47,7 +47,7 @@ int CClip::openFile(){
     }
 
     m_duration_us = static_cast<long>(in_fmt_ctx->duration * (1000000 * av_q2d(AV_TIME_BASE_Q)));
-    VIKTOR_LOGI("CClip m_duration_uss:%ld",m_duration_us);
+    VIKTOR_LOGI("CClip m_duration_us:%ld",m_duration_us);
     if (m_video_index >= 0){
         AVStream *st = in_fmt_ctx->streams[m_video_index];
         AVCodecParameters *codecpar = st->codecpar;

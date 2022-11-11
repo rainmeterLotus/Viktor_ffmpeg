@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import com.viktor.fg.loader.SelectMedia
 import com.viktor.fg.select.MediaSelectActivity
 import com.viktor.fg.util.ViktorConstants
 import kotlinx.android.synthetic.main.activity_main.*
@@ -23,9 +24,9 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == MediaSelectActivity.REQUEST_CODE_ALBUM && resultCode == Activity.RESULT_OK){
-            val mediaList = data?.getStringArrayListExtra(ViktorConstants.INTENT_DATA)
-            mediaList?.forEach { path->
-                Log.d("rain", "path:$path")
+            val mediaList = data?.getParcelableArrayListExtra<SelectMedia>(ViktorConstants.INTENT_DATA)
+            mediaList?.forEach { selectMedia->
+                Log.d("rain", "$selectMedia")
             }
 
             VideoPlayActivity.startActivity(this,mediaList)

@@ -52,7 +52,7 @@ class MediaSelectActivity :
     private val mAlbumCategoryAdapter: AlbumsAdapter by lazy { AlbumsAdapter(this, null, false) }
 
     //选中的素材
-    private val selectMediaList = ArrayList<String>()
+    private val selectMediaList = ArrayList<SelectMedia>()
 
     //相册分类callBack
     private val mAlbumCategoryCallback: AlbumCategoryManager.AlbumCategoryCallbacks =
@@ -124,7 +124,7 @@ class MediaSelectActivity :
             }
 
             val intent = Intent()
-            intent.putStringArrayListExtra(ViktorConstants.INTENT_DATA, selectMediaList)
+            intent.putParcelableArrayListExtra(ViktorConstants.INTENT_DATA, selectMediaList)
             setResult(RESULT_OK, intent)
             finish()
         }
@@ -154,11 +154,11 @@ class MediaSelectActivity :
         }
     }
 
-    private fun dealWithMediaSelect(path:String,isAdd:Boolean){
+    private fun dealWithMediaSelect(selectMedia:SelectMedia,isAdd:Boolean){
         if (isAdd){
-            selectMediaList.add(path)
+            selectMediaList.add(selectMedia)
         } else {
-            selectMediaList.remove(path)
+            selectMediaList.remove(selectMedia)
         }
         tv_done?.isSelected = !selectMediaList.isNullOrEmpty()
     }

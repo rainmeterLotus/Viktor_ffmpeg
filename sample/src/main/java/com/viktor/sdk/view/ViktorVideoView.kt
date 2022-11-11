@@ -13,10 +13,7 @@ import com.viktor.sdk.impl.IViktorCallback
 import com.viktor.sdk.timeline.ViktorActuator
 import com.viktor.sdk.timeline.ViktorTimeline
 
-const val STATE_UNKNOWN = 0
-const val STATE_START = 1
-const val STATE_PAUSE = 2
-const val STATE_END = 3
+
 
 class ViktorVideoView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -25,6 +22,11 @@ class ViktorVideoView @JvmOverloads constructor(
     companion object {
         const val TAG = "ViktorVideoView"
         val DEBUG = BuildConfig.DEBUG
+
+        const val STATE_UNKNOWN = 0
+        const val STATE_START = 1
+        const val STATE_PAUSE = 2
+        const val STATE_END = 3
     }
 
     private var listener: OnViePlayCallback? = null

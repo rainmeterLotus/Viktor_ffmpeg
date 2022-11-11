@@ -6,10 +6,10 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
+import com.viktor.fg.loader.SelectMedia
 import com.viktor.fg.util.ViktorConstants
 import com.viktor.fg.util.ViktorUtil
 import com.viktor.sdk.timeline.ViktorActuator
-import com.viktor.sdk.view.STATE_START
 import com.viktor.sdk.view.ViktorVideoView
 import kotlinx.android.synthetic.main.activity_video_play.*
 import kotlinx.android.synthetic.main.activity_video_play.seek_bar
@@ -21,9 +21,9 @@ class VideoPlayActivity : AppCompatActivity() {
         const val TAG = "video_play_a"
         val DEBUG = BuildConfig.DEBUG
 
-        fun startActivity(context: Context, mediaPathList: ArrayList<String>?) {
+        fun startActivity(context: Context, mediaPathList: ArrayList<SelectMedia>?) {
             val intent = Intent(context, VideoPlayActivity::class.java)
-            intent.putStringArrayListExtra(ViktorConstants.INTENT_DATA, mediaPathList)
+            intent.putParcelableArrayListExtra(ViktorConstants.INTENT_DATA, mediaPathList)
             context.startActivity(intent)
         }
 
@@ -53,7 +53,7 @@ class VideoPlayActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_video_play)
 
-        val mediaPathList = intent.getStringArrayListExtra(ViktorConstants.INTENT_DATA)
+        val mediaPathList = intent.getParcelableArrayListExtra<SelectMedia>(ViktorConstants.INTENT_DATA)
 
         if (DEBUG) {
             Log.d(TAG, "mediaPathList:$mediaPathList")
@@ -88,7 +88,7 @@ class VideoPlayActivity : AppCompatActivity() {
                 if (DEBUG) {
                     Log.d(TAG, "onStateChanged state:$state")
                 }
-                iv_video_btn.isSelected = state == STATE_START
+                iv_video_btn.isSelected = state == ViktorVideoView.STATE_START
             }
 
         })
@@ -126,7 +126,7 @@ class VideoPlayActivity : AppCompatActivity() {
 
     }
 
-    private fun testViktor(mediaPathList: java.util.ArrayList<String>?) {
+    private fun testViktor(mediaPathList: java.util.ArrayList<SelectMedia>?) {
 
         if (mediaPathList.isNullOrEmpty()){
             return
@@ -136,9 +136,13 @@ class VideoPlayActivity : AppCompatActivity() {
         val createTimeline = viktorActuator.createTimeline()
         val appendVideoTrack = createTimeline?.appendVideoTrack()
 
-        mediaPathList.forEach { path->
+        mediaPathList.forEach { selectMedia->
             appendVideoTrack?.let {
-                it.appendClip(path, 0L, (1000000*2).toLong())
+                val path = selectMedia.path ?: return@forEach
+                val durationMills = selectMedia.durationMills
+
+//                it.appendClip(path, 0L, 2000 * 1000)
+                it.appendClip(path, 0L, durationMills * 1000)
             }
 
         }
