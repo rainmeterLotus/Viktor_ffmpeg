@@ -3,6 +3,7 @@
 //
 
 #include "CTimelineWrapper.h"
+#include "../../ffplay/soundtouch_wrap.h"
 
 
 void CTimelineWrapper::init(JNIEnv *env, jobject job) {
@@ -141,9 +142,16 @@ void CTimelineWrapper::stream_open(){
     init_clock(&m_context->vidclk, &m_context->video_packet_q.serial);
     init_clock(&m_context->audclk, &m_context->audio_packet_q.serial);
     init_clock(&m_context->extclk, &m_context->extclk.serial);
-
+    startup_volume = av_clip(startup_volume, 0, 100);
+    startup_volume = av_clip(SDL_MIX_MAXVOLUME * startup_volume / 100, 0, SDL_MIX_MAXVOLUME);
+    m_context->audio_volume = startup_volume;
+    m_context->muted = 0;
     m_context->av_sync_type = av_sync_type;
     m_context->show_mode = SHOW_MODE_VIDEO;
+    m_context->pf_playback_rate = default_rate;
+    if (soundtouch_enable) {
+        m_context->soundtouch = soundtouch_create();
+    }
 
     m_start_thread = new (std::nothrow)std::thread(start_prepare_thread,this);
 
@@ -185,6 +193,10 @@ void CTimelineWrapper::stream_close(){
 
     delete m_context->read_frame_cond;
     m_context->read_frame_cond = nullptr;
+
+    if (soundtouch_enable && m_context->soundtouch != nullptr) {
+        soundtouch_destroy(m_context->soundtouch);
+    }
 
     release_track(m_context);
 

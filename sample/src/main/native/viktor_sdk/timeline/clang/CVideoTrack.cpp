@@ -35,6 +35,7 @@ CVideoClip *CVideoTrack::insertClipByIndex(std::string filePath, long startTime,
     int size = vec_video_clip.size();
     for (int i = 0; i < size; ++i) {
         CVideoClip *clip = vec_video_clip.at(i);
+        clip->m_index = i;
         clip->isLast = false;
         if (i == 0){
             clip->m_in_point_us = 0;

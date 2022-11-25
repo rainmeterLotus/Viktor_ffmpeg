@@ -15,12 +15,15 @@
 
 extern "C" {
 #include <libavutil/time.h>
+#include <libswresample/swresample.h>
 }
 
 /**
  * 控制是否丢帧的开关变量
  */
 static int frame_drop = -1;
+static int soundtouch_enable = 1;
+static float default_rate = 1.0f;
 
 typedef struct ViktorAudioParams {
     int freq;
@@ -42,28 +45,12 @@ typedef struct ViktorDecoder {
     int pkt_serial;
     int finished;
     int packet_pending;
-    /**
-     * 1，代表正在解码
-     * 0，代表解码结束
-     * 主要用于demux线程读取AVPacket到了第二个Clip，准备解码该AVPacket数据时，
-     * 第一个Clip片段还在解码过程中,此时是需要在解码线程中等待，直到第一个Clip的数据结束
-     * 详细见下面2个方法解读：
-     * ViktorVideoDecode::decode_start---->
-     * 该方法中第二个Clip需要解码时，需要wait：
-     * context->viddec.wait_decode_cond->wait_for
-     *
-     * IViktorDecode::decoder_decode_frame---->
-     * 该方法中正在解码第一个Clip,当结束之后会调用：
-     * d->wait_decode_cond->notify_one()通知等待的地方结束等待
-     */
-    int decode_state;
     std::condition_variable *empty_queue_cond;
     int64_t start_pts;
     AVRational start_pts_tb;
     int64_t next_pts;
     AVRational next_pts_tb;
     std::thread *decoder_tid;
-    std::condition_variable *wait_decode_cond;
 } ViktorDecoder;
 
 typedef struct ViktorClock{
@@ -131,7 +118,24 @@ typedef struct ViktorContext{
      */
     std::condition_variable *read_frame_cond;
 
+    double audio_clock;
+    int audio_clock_serial;
+    uint8_t *audio_buf;/* 从要输出的AVFrame中取出的音频数据（PCM），如果有必要，则对该数据重采样*/
+    uint8_t *audio_buf1;
+    short *audio_new_buf;  /* for soundtouch buf */
+    unsigned int audio_buf_size; /* in bytes audio_buf的总大小*/
+    unsigned int audio_buf1_size;
+    unsigned int audio_new_buf_size;
+    int audio_buf_index; /* in bytes  下一次可读的audio_buf的index位置*/
+    int audio_write_buf_size; /* audio_buf已经输出的大小，即audio_buf_size - audio_buf_index */
+    int audio_volume;
+    int muted;
+    float       pf_playback_rate = 1.0f;
+
+    struct ViktorAudioParams audio_src;
     struct ViktorAudioParams audio_tgt;
+    struct SwrContext *swr_ctx;
+    void *soundtouch = nullptr;
 
     SLAudio_ES *m_audioEs = nullptr;
 
@@ -140,6 +144,24 @@ typedef struct ViktorContext{
     jobject m_javaObj = nullptr;
     SDL_ProgressCallback m_progressCallback;
     SDL_PrepareCallback m_prepareCallback;
+
+
+    /**
+     * 1，代表正在解码
+     * 0，代表解码结束
+     * 主要用于demux线程读取AVPacket到了第二个Clip，准备解码该AVPacket数据时，
+     * 第一个Clip片段还在解码过程中,此时是需要在解码线程中等待，直到第一个Clip的数据结束
+     * 详细见下面2个方法解读：
+     * ViktorVideoDecode::decode_start---->
+     * 该方法中第二个Clip需要解码时，需要wait：
+     * context->viddec.wait_decode_cond->wait_for
+     *
+     * IViktorDecode::decoder_decode_frame---->
+     * 该方法中正在解码第一个Clip,当结束之后会调用：
+     * d->wait_decode_cond->notify_one()通知等待的地方结束等待
+     */
+    int decode_state;
+    std::condition_variable *wait_decode_cond;
 
 } ViktorContext;
 

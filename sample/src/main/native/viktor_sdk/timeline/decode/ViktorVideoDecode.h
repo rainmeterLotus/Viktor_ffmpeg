@@ -10,7 +10,7 @@
 
 class ViktorVideoDecode: public IViktorDecode{
 public:
-    int decode_start(ViktorContext *context,CClip *clip,bool isNow);
+    int decode_start(ViktorContext *context,CClip *clip);
 
 private:
     static int video_thread(void *arg,void *context);

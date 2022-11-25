@@ -33,6 +33,7 @@ CAudioClip *CAudioTrack::insertClipByIndex(std::string filePath, long startTime,
 
     for (int i = 0; i <vec_audio_clip.size(); ++i) {
         CAudioClip *clip = vec_audio_clip.at(i);
+        clip->m_index = i;
         if (i == 0){
             clip->m_in_point_us = 0;
             clip->m_out_point_us = clip->m_end_micro_sec;

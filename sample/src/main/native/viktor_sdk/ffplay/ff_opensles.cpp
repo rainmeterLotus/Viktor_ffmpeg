@@ -135,10 +135,10 @@ void SLAudio_ES::close_audio(){
         abort_request = true;
         wakeup_cond.notify_one();
     }
-    VIKTOR_LOGI("SLAudio_ES::close_audio 00");
+    VIKTOR_LOGI("SLAudio_ES::close_audio wait");
     SDL_WaitThread(audio_tid);
     audio_tid = nullptr;
-
+    VIKTOR_LOGI("SLAudio_ES::close_audio wait end");
     if (m_slPlayItf){
         (*m_slPlayItf)->SetPlayState(m_slPlayItf,SL_PLAYSTATE_STOPPED);
         m_slPlayItf = nullptr;
@@ -171,6 +171,7 @@ void SLAudio_ES::close_audio(){
 
 
     av_freep(&buffer);
+    VIKTOR_LOGI("SLAudio_ES::close_audio finish");
 }
 
 void SLAudio_ES::flush_audio(){
@@ -230,7 +231,7 @@ void SLAudio_ES::opensles_callback(SLAndroidSimpleBufferQueueItf caller, void *p
 }
 
 void SLAudio_ES::audio_thread(void *context){
-    VIKTOR_LOGI("SLAudio_ES::audio_thread");
+    VIKTOR_LOGI("SLAudio_ES::audio_thread start");
     auto *opaque = static_cast<SLAudio_ES *>(context);
     SLPlayItf slPlayItf  = opaque->m_slPlayItf;
     SLAndroidSimpleBufferQueueItf  slBufferQueueItf = opaque->m_slBufferQueueItf;
@@ -247,6 +248,7 @@ void SLAudio_ES::audio_thread(void *context){
 
     std::mutex wait_mutex;
     while (!opaque->abort_request){
+        VIKTOR_LOGI("SLAudio_ES::audio_thread while start");
         SLAndroidSimpleBufferQueueState slState = {0};
         SLresult slRet = (*slBufferQueueItf)->GetState(slBufferQueueItf,&slState);
         if (slRet != SL_RESULT_SUCCESS){
@@ -260,8 +262,9 @@ void SLAudio_ES::audio_thread(void *context){
                     (*slPlayItf)->SetPlayState(slPlayItf, SL_PLAYSTATE_PLAYING);
                 }
                 std::unique_lock<std::mutex> lock(wait_mutex);
+                VIKTOR_LOGI("SLAudio_ES::audio_thread wait_for start");
                 opaque->wakeup_cond.wait_for(lock, std::chrono::milliseconds(1000));
-                VIKTOR_LOGI("SLAudio_ES::audio_thread wait_for");
+                VIKTOR_LOGI("SLAudio_ES::audio_thread wait_for end");
                 SLresult slRet = (*slBufferQueueItf)->GetState(slBufferQueueItf,&slState);
                 if (slRet != SL_RESULT_SUCCESS){
                     opaque->wakeup_mutex.unlock();
@@ -270,6 +273,8 @@ void SLAudio_ES::audio_thread(void *context){
                 if (opaque->pause_on){
                     (*slPlayItf)->SetPlayState(slPlayItf, SL_PLAYSTATE_PAUSED);
                 }
+
+                VIKTOR_LOGI("SLAudio_ES::audio_thread while while end");
             }
 
             if (!opaque->abort_request && !opaque->pause_on) {
@@ -277,7 +282,7 @@ void SLAudio_ES::audio_thread(void *context){
             }
         }
 
-
+        VIKTOR_LOGI("SLAudio_ES::audio_thread while need_flush:%d",opaque->need_flush);
         if (opaque->need_flush) {
             opaque->need_flush = false;
             (*slBufferQueueItf)->Clear(slBufferQueueItf);
@@ -288,8 +293,20 @@ void SLAudio_ES::audio_thread(void *context){
         opaque->wakeup_mutex.unlock();
         next_buffer = opaque->buffer + next_buffer_index * bytes_per_buffer;
         next_buffer_index = (next_buffer_index + 1) % OPENSLES_BUFFERS;
+
+        /**
+         * 在ViktorAudioDecode::decode_start方法中会调用context->m_audioEs->close_audio()--->context->m_audioEs->close_audio()
+         * 会触发audio_thread方法执行，
+         * 下面audio_cblk调用ViktorAudioDecode::sdl_audio_callback--->audio_decode_frame--->frame_queue_peek_readable
+         * frame_queue_peek_readable有可能卡死,这里再判断一次是否已经中断了
+         */
+        if (opaque->abort_request){
+            VIKTOR_LOGI("SLAudio_ES::audio_cblk before is abort_request");
+            break;
+        }
+        VIKTOR_LOGI("SLAudio_ES::audio_cblk start");
         audio_cblk(userdata,next_buffer,bytes_per_buffer);
-        VIKTOR_LOGI("SLAudio_ES::audio_cblk");
+        VIKTOR_LOGI("SLAudio_ES::audio_cblk end");
         if (opaque->need_flush){
             (*slBufferQueueItf)->Clear(slBufferQueueItf);
             opaque->need_flush = false;
@@ -313,7 +330,7 @@ void SLAudio_ES::audio_thread(void *context){
             }
         }
 
-
+        VIKTOR_LOGI("SLAudio_ES::audio_thread while end");
     }
 
 }

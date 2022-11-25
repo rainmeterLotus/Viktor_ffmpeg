@@ -4,64 +4,33 @@
 
 #include "ViktorVideoDecode.h"
 
-int ViktorVideoDecode::decode_start(ViktorContext *context,CClip *clip,bool isNow){
+int ViktorVideoDecode::decode_start(ViktorContext *context,CClip *clip){
     int ret = 0;
 
     if (clip->video_in_codec_ctx){
-        VIKTOR_LOGE("decode_start before &context->viddec:%p,isNow:%d",&context->viddec,isNow);
-        VIKTOR_LOGE("decode_start before &context->viddec.decoder_tid:%p",context->viddec.decoder_tid);
+        VIKTOR_LOGE("decode_start video before &context->viddec:%p",&context->viddec);
+        VIKTOR_LOGE("decode_start video before &context->viddec.decoder_tid:%p",context->viddec.decoder_tid);
 
         if (context->viddec.decoder_tid){//说明解码线程已经启动
-
-            /**
-             * 是否立马开始解码
-             * seek的需要立马开始解码
-             */
-            if (isNow){
-                context->viddec.avctx = clip->video_in_codec_ctx;
-                context->viddec.decode_state = 1;
-//                avcodec_flush_buffers(clip->video_in_codec_ctx);
-            } else {
-                std::mutex *wait_mutex = sdl_create_mutex();
-                for (;;){
-                    if (context->abort_request){
-                        break;
-                    }
-                    if (context->viddec.decode_state > 0){
-                        VIKTOR_LOGE("decode_start wait_decode_cond---");
-                        std::unique_lock<std::mutex> lock(*wait_mutex);
-                        context->viddec.wait_decode_cond->wait_for(lock, std::chrono::milliseconds(10));
-                        continue;
-                    }
-                    if (context->viddec.decode_state == 0){
-                        context->viddec.avctx = clip->video_in_codec_ctx;
-                        context->viddec.decode_state = 1;
-//                        avcodec_flush_buffers(clip->video_in_codec_ctx);
-                    }
-                    break;
-                }
-                VIKTOR_LOGE("decode_start wait_decode_cond---go");
-                delete wait_mutex;
-            }
-
+            context->viddec.avctx = clip->video_in_codec_ctx;
         } else {
             decoder_init(&context->viddec,clip->video_in_codec_ctx,
                          &context->video_packet_q,context->read_frame_cond);
         }
 
-        VIKTOR_LOGE("decode_start after &context->viddec:%p",&context->viddec);
+        VIKTOR_LOGE("decode_start video after &context->viddec:%p",&context->viddec);
     } else {
-        VIKTOR_LOGE("decode_start not found AVCodecContext:%p",clip->video_in_codec_ctx);
+        VIKTOR_LOGE("decode_start video not found AVCodecContext:%p",clip->video_in_codec_ctx);
         return -1;
     }
+    VIKTOR_LOGE("decode_start video context->auddec.decoder_tid:%p",context->viddec.decoder_tid);
 
     current_clip = clip;
     if (context->viddec.decoder_tid){
         return ret;
     }
-    context->viddec.decode_state = 1;
     if ((ret = decoder_start(&context->viddec, video_thread, context, this)) < 0) {
-        VIKTOR_LOGE("AVMEDIA_TYPE_VIDEO decoder_start fail");
+        VIKTOR_LOGE("AVMEDIA_TYPE_VIDEO decoder_start video fail");
         return ret;
     }
     return ret;
@@ -130,12 +99,13 @@ int ViktorVideoDecode::video_thread(void *arg,void *context){
 
     the_end:
     av_frame_free(&frame);
+    VIKTOR_LOGI("video_thread the_end");
     return 0;
 }
 
 int ViktorVideoDecode::get_video_frame(ViktorContext *context, AVFrame *frame,CClip *clip){
     int got_picture;
-    if ((got_picture = decoder_decode_frame(&context->viddec, frame, clip)) < 0) return -1;
+    if ((got_picture = decoder_decode_frame(context,&context->viddec, frame, clip)) < 0) return -1;
     VIKTOR_LOGE("got_picture:%d", got_picture);
     //针对丢帧的处理
     if (got_picture) {

@@ -25,6 +25,12 @@ void ViktorDemux::read_frame_thread(ViktorContext *context) {
             find_clip = find_current_clip(context, m_start_us, track_index);
             VIKTOR_LOGD("read_frame_thread find_clip :%p",find_clip);
             VIKTOR_LOGD("read_frame_thread current_clip :%p",current_clip);
+            if (find_clip){
+                VIKTOR_LOGD("read_frame_thread find_clip in track index:%d",find_clip->m_index);
+            }
+            if (current_clip){
+                VIKTOR_LOGD("read_frame_thread current_clip in track index:%d",current_clip->m_index);
+            }
             handle_clip_seek(context, find_clip);
             if (find_clip && init_decode(context, find_clip) < 0) {
                 VIKTOR_LOGE("read_frame_thread foreach init_decode fail");
@@ -385,6 +391,7 @@ bool ViktorDemux::handle_enough(ViktorContext *context, CClip *clip) {
 bool ViktorDemux::is_loop(ViktorContext *context,CClip *clip){
     bool isAudioFinish = !clip->audio_in_codec_ctx || (context->auddec.finished == context->audio_packet_q.serial && frame_queue_nb_remaining(&context->sample_frame_q) == 0);
     bool isVideoFinish = !clip->video_in_codec_ctx || (context->viddec.finished == context->video_packet_q.serial && frame_queue_nb_remaining(&context->picture_frame_q) == 0);
+    VIKTOR_LOGD("auddec.finished:%d,audio_packet_q.serial:%d,sample_frame_q:%d",context->auddec.finished, context->audio_packet_q.serial,frame_queue_nb_remaining(&context->sample_frame_q));
     VIKTOR_LOGD("viddec.finished:%d,video_packet_q.serial:%d,picture_frame_q:%d",context->viddec.finished, context->video_packet_q.serial,frame_queue_nb_remaining(&context->picture_frame_q));
     VIKTOR_LOGD("isAudioFinish:%d,isVideoFinish:%d",isAudioFinish,isVideoFinish);
     if (!context->paused && isAudioFinish && isVideoFinish){
@@ -409,6 +416,7 @@ int ViktorDemux::init_decode(ViktorContext *context, CClip *clip) {
     }
     VIKTOR_LOGD("init_decode m_decode_wrapper :%p",m_decode_wrapper);
     ret = m_decode_wrapper->decode_init(context, clip,is_seek);
+    VIKTOR_LOGD("init_decode m_decode_wrapper ret:%d",ret);
 
     return ret;
 }

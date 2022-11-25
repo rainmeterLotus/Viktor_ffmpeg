@@ -93,7 +93,7 @@ void ViktorVideoDisplay::video_refresh(void *opaque, double *remaining_time){
 
             time = av_gettime_relative() / 1000000.0;//获取当前系统时间(单位秒)
 
-            //VIKTOR_LOGI("video_refresh last_duration:%lf,delay:%lf,time:%lf,frame_timer+delay:%lf",last_duration,delay,time,is->frame_timer + delay)
+            VIKTOR_LOGI("video_refresh last_duration:%lf,delay:%lf,time:%lf,frame_timer+delay:%lf",last_duration,delay,time,is->frame_timer + delay);
             //视频播放过快，重复显示
             if (time < is->frame_timer + delay) {//如果上一帧显示时长未满，重复显示上一帧
                 //VIKTOR_LOGI("video_refresh time < is->frame_timer + delay")

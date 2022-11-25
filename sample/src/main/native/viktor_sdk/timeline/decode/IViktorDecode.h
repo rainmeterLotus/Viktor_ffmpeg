@@ -10,7 +10,7 @@
 
 class IViktorDecode {
 public:
-    int decoder_decode_frame(ViktorDecoder *d, AVFrame *frame, CClip *clip);
+    int decoder_decode_frame(ViktorContext *context, ViktorDecoder *d,AVFrame *frame, CClip *clip);
     void release();
 
     CClip *current_clip = nullptr;

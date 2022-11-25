@@ -44,6 +44,7 @@ void frame_queue_destroy(VKFrameQueue *f){
 }
 
 void frame_queue_signal(VKFrameQueue *f){
+    if (!f) return;
     std::lock_guard<std::mutex> lock(*f->mutex);
     f->cond->notify_one();
 }
@@ -56,6 +57,7 @@ int frame_queue_nb_remaining(VKFrameQueue *f){
     return f->size - f->rindex_shown;
 }
 VKFrame *frame_queue_peek_writable(VKFrameQueue *f){
+    if (!f) return nullptr;
     std::unique_lock<std::mutex> lock(*f->mutex);
     while (f->size >= f->max_size && !f->pktq->abort_request) {
         VIKTOR_LOGI( "frame_queue_peek_writable SDL_CondWait");
@@ -68,8 +70,10 @@ VKFrame *frame_queue_peek_writable(VKFrameQueue *f){
 }
 
 VKFrame *frame_queue_peek_readable(VKFrameQueue *f){
+    if (!f) return nullptr;
     std::unique_lock<std::mutex> lock(*f->mutex);
     while (f->size - f->rindex_shown <= 0 && !f->pktq->abort_request) {
+        VIKTOR_LOGI( "frame_queue_peek_readable f->cond->wait");
         f->cond->wait(lock);
     }
 
@@ -79,6 +83,7 @@ VKFrame *frame_queue_peek_readable(VKFrameQueue *f){
 }
 
 void frame_queue_push(VKFrameQueue *f){
+    if (!f) return;
     if (++f->windex == f->max_size) {
         f->windex = 0;
     }
@@ -92,6 +97,7 @@ void frame_queue_push(VKFrameQueue *f){
  * 两个行为：标记一个节点为已读，以及rindex_shown的赋值。
  * */
 void frame_queue_next(VKFrameQueue *f){
+    if (!f) return;
     /**如果支持keep_last，且rindex_shown为0，则rindex_shown赋1，返回
      * rindex_shown的意思是rindex指向的节点是否被读过，如果被读过， 为1，反之，为0
      */

@@ -45,7 +45,7 @@ public:
     int m_width = 0;
     int m_height = 0;
 
-    int audio_enable = 0;
+    int audio_enable = 1;
     int video_enable = 1;
 
     AVFormatContext *in_fmt_ctx = nullptr;
@@ -53,6 +53,8 @@ public:
     AVCodecContext *audio_in_codec_ctx = nullptr;
     bool isFirst = false;
     bool isLast = false;
+    //该Clip在track中的位置
+    int m_index = -1;
 
 private:
     int init_decode(int stream_index,AVCodecContext **avctx_p);

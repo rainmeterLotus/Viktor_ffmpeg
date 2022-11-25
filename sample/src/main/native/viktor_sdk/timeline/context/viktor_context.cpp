@@ -111,9 +111,6 @@ void decoder_init(ViktorDecoder *d, AVCodecContext *avctx, VKPacketQueue *queue,
     d->empty_queue_cond = empty_queue_cond;
     d->start_pts = AV_NOPTS_VALUE;
     d->pkt_serial = -1;
-    if (!d->wait_decode_cond){
-        d->wait_decode_cond = sdl_create_cond();
-    }
 }
 
 int decoder_start(ViktorDecoder *d, int (*fn)(void *,void *), void* arg, void *context){
@@ -155,7 +152,7 @@ double get_master_clock(ViktorContext *context){
 }
 
 int get_master_sync_type(ViktorContext *context){
-    return AV_SYNC_EXTERNAL_CLOCK;
+    return AV_SYNC_AUDIO_MASTER;
 }
 
 double vp_duration(ViktorContext *context, VKFrame *vp, VKFrame *nextvp){
@@ -183,16 +180,20 @@ double compute_target_delay(double delay, ViktorContext *context){
            delay to compute the threshold. I still don't know
            if it is the best guess */
         sync_threshold = FFMAX(AV_SYNC_THRESHOLD_MIN, FFMIN(AV_SYNC_THRESHOLD_MAX, delay));
-        VIKTOR_LOGD("compute_target_delay delay:%lf,diff:%lf,sync_threshold:%lf", delay, diff, sync_threshold);
+        VIKTOR_LOGD("compute_target_delay delay:%lf,diff:%lf,sync_threshold:%lf,max_frame_duration:%lf", delay, diff, sync_threshold,context->max_frame_duration);
         if (!isnan(diff) && fabs(diff) < context->max_frame_duration) {
+            VIKTOR_LOGD("compute_target_delay ok");
             if (diff <= -sync_threshold) {
+                VIKTOR_LOGD("compute_target_delay diff <= -sync_threshold");
                 /**
                 * 视频播放过慢，需要适当丢帧
                 */
                 delay = FFMAX(0, delay + diff);
             } else if (diff >= sync_threshold && delay > AV_SYNC_FRAMEDUP_THRESHOLD) {
+                VIKTOR_LOGD("compute_target_delay delay > AV_SYNC_FRAMEDUP_THRESHOLD");
                 delay = delay + diff;
             } else if (diff >= sync_threshold) {
+                VIKTOR_LOGD("compute_target_delay diff >= sync_threshold");
                 delay = 2 * delay;
             }
         }

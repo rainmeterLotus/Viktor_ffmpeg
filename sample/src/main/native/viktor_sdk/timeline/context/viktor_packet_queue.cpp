@@ -42,6 +42,10 @@ void packet_queue_destroy(VKPacketQueue *q){
 }
 
 void packet_queue_flush(VKPacketQueue *q){
+    if (!q){
+        VIKTOR_LOGD("packet_queue_flush q is null");
+        return ;
+    }
     VKPacketList *pkt,*pkt1;
     std::lock_guard<std::mutex> lock(*q->mutex);
 
@@ -77,6 +81,10 @@ int packet_queue_put(VKPacketQueue *q, AVPacket *pkt){
 
 
 int packet_queue_put_nullpacket(VKPacketQueue *q, int stream_index){
+    if (!q){
+        VIKTOR_LOGD("packet_queue_put_nullpacket q is null");
+        return -1;
+    }
     VIKTOR_LOGD("packet_queue_put_nullpacket");
     AVPacket pkt1, *pkt = &pkt1;
     av_init_packet(pkt);
@@ -101,6 +109,10 @@ PacketQueue
 ------------------------------------------------------------
 */
 int packet_queue_put_private(VKPacketQueue *q, AVPacket *pkt){
+    if (!q){
+        VIKTOR_LOGD("packet_queue_put_private q is null");
+        return -1;
+    }
     VIKTOR_LOGD("packet_queue_put_private");
     VKPacketList *pkt1;
     if (q->abort_request) return -1;
@@ -135,6 +147,10 @@ int packet_queue_put_private(VKPacketQueue *q, AVPacket *pkt){
 }
 
 int packet_queue_get(VKPacketQueue *q, AVPacket *pkt, AVPacket *d_pkt,int block, int *serial,int decode_state){
+    if (!q){
+        VIKTOR_LOGD("packet_queue_get q is null");
+        return -1;
+    }
     VKPacketList *pkt1;
     int ret;
     VIKTOR_LOGD("packet_queue_get");
@@ -184,6 +200,10 @@ int packet_queue_get(VKPacketQueue *q, AVPacket *pkt, AVPacket *d_pkt,int block,
 }
 
 void packet_queue_start(VKPacketQueue *q){
+    if (!q){
+        VIKTOR_LOGD("packet_queue_start q is null");
+        return;
+    }
     std::lock_guard<std::mutex> lock(*q->mutex);
     q->abort_request = 0;
     /**
@@ -194,7 +214,11 @@ void packet_queue_start(VKPacketQueue *q){
 }
 
 void packet_queue_abort(VKPacketQueue *q){
-    VIKTOR_LOGD("packet_queue_abort");
+    if (!q){
+        VIKTOR_LOGD("packet_queue_abort q is null");
+        return;
+    }
+    VIKTOR_LOGD("packet_queue_abort q:%p",q);
     std::lock_guard<std::mutex> lock(*q->mutex);
     q->abort_request = 1;
     //packet_queue_get 方法会wait
