@@ -48,7 +48,7 @@ int ViktorDecodeWrapper::decode_init(ViktorContext *context,CClip *clip,bool isN
         sdl_cond_wait(context->wait_decode_cond,wait_mutex);
     }
     delete wait_mutex;
-
+    VIKTOR_LOGE("decode_start to go go decode--clip index:%d",clip->m_index);
     context->max_frame_duration = (clip->in_fmt_ctx->iformat->flags & AVFMT_TS_DISCONT) ? 10.0 : 3600.0;
     context->decode_state = 1;
     ret = m_video_decode->decode_start(context, clip);

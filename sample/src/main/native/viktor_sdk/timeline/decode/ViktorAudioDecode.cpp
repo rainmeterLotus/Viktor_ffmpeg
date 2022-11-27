@@ -7,12 +7,30 @@
 
 int ViktorAudioDecode::decode_start(ViktorContext *context, CClip *clip) {
     int ret = 0;
-
-    VIKTOR_LOGE("ViktorAudioDecode::decode_start audio_in_codec_ctx:%p",clip->audio_in_codec_ctx);
+    VIKTOR_LOGE("ViktorAudioDecode::decode_start");
+    if(clip == current_clip){
+        VIKTOR_LOGE("ViktorAudioDecode::decode_start clip == current_clip,no need to start thread again");
+        return ret;
+    }
     if (clip->audio_in_codec_ctx) {
         if (context->auddec.decoder_tid){//说明解码线程已经启动
             context->auddec.avctx = clip->audio_in_codec_ctx;
             if (context->m_audioEs) {
+                /**
+                 * m_audioEs->close_audio()方法调用时，该方法中需要等待音频播放线程结束：
+                 * 会触发audio_thread方法执行（见close_audio中的SDL_WaitThread(audio_tid)）
+                 * 接着audio_cblk调用ViktorAudioDecode::sdl_audio_callback--->audio_decode_frame--->sample_frame_queue_peek_readable
+                 * sample_frame_queue_peek_readable有可能卡死,这里需要做个标记，表示卡死的地方我这里需要关闭音频，
+                 * 等待的地方发现is_audio_close等于1时就不用等待了
+                 *
+                 * 注意：这块之所以出现卡死问题，核心在于ViktorAudioDecode::decode_start是在demux线程调用，触发了close_audio中需要等待opensles的线程结束才行
+                 * 所以就会出现卡死（复现卡死方法：clip1-->clip2--->clip3,三个片段播放，且clip2没有音频轨道，即没有声音的视频就能复现）
+                 *
+                 * （不建议在sample_frame_queue_peek_readable中将f->pktq->abort_request字段改值，因为改字段表示整个解码都会中断，
+                 * 需要考虑重启音频线程audio_thread，逻辑太多，所以不建议改abort_request）
+                */
+                context->is_audio_close = 1;
+                frame_queue_signal(&context->sample_frame_q);
                 VIKTOR_LOGE("ViktorAudioDecode::decode_start close_audio");
                 context->m_audioEs->close_audio();
                 VIKTOR_LOGE("ViktorAudioDecode::decode_start createOpenSLES");
@@ -38,7 +56,7 @@ int ViktorAudioDecode::decode_start(ViktorContext *context, CClip *clip) {
             VIKTOR_LOGE("ViktorAudioDecode::decode_start audio_open fail ret:%d",ret);
             return ret;
         }
-
+        context->is_audio_close = 0;
         context->audio_src = context->audio_tgt;
         context->audio_buf_size = 0;
         context->audio_buf_index = 0;
@@ -215,6 +233,7 @@ int ViktorAudioDecode::audio_thread(void *arg, void *context) {
             video_clip = viktor_audio_decode->current_clip;
         }
         if ((got_frame = viktor_audio_decode->decoder_decode_frame(viktor_context,&viktor_context->auddec, frame, video_clip)) < 0) {
+            VIKTOR_LOGE("audio_thread decoder_decode_frame goto the_end got_frame:%d",got_frame);
             goto the_end;
         }
 
@@ -222,6 +241,7 @@ int ViktorAudioDecode::audio_thread(void *arg, void *context) {
             tb = (AVRational) {1, frame->sample_rate};
 
             if (!(af = frame_queue_peek_writable(&viktor_context->sample_frame_q))) {
+                VIKTOR_LOGE("audio_thread frame_queue_peek_writable goto the_end af:%p",af);
                 goto the_end;
             }
 
@@ -235,6 +255,7 @@ int ViktorAudioDecode::audio_thread(void *arg, void *context) {
         }
     } while (ret >= 0);
     the_end:
+    VIKTOR_LOGE("audio_thread the_end");
     av_frame_free(&frame);
     return ret;
 }
@@ -325,6 +346,23 @@ void ViktorAudioDecode::sdl_audio_callback(void *opaque, uint8_t *stream, int le
 
 }
 
+VKFrame *ViktorAudioDecode::sample_frame_queue_peek_readable(VKFrameQueue *f,const int *is_audio_close){
+    if (!f) return nullptr;
+    std::unique_lock<std::mutex> lock(*f->mutex);
+    while (f->size - f->rindex_shown <= 0 && !f->pktq->abort_request && !*is_audio_close) {
+        VIKTOR_LOGI( "sample_frame_queue_peek_readable f->cond->wait");
+        f->cond->wait(lock);
+    }
+
+    if (*is_audio_close){
+        return NULL;
+    }
+
+    if (f->pktq->abort_request) return NULL;
+    //因为rindex加1后可能超过max_size，所以这里取余
+    return &f->queue[(f->rindex + f->rindex_shown) % f->max_size];
+}
+
 /**
  * 重采样
  * @param is
@@ -342,7 +380,7 @@ int ViktorAudioDecode::audio_decode_frame(ViktorContext *is) {
     reload:
     do {
         VIKTOR_LOGE("do audio_decode_frame");
-        if (!(af = frame_queue_peek_readable(&is->sample_frame_q)))
+        if (!(af = sample_frame_queue_peek_readable(&is->sample_frame_q,&is->is_audio_close)))
             return -1;
         frame_queue_next(&is->sample_frame_q);
     } while (af->serial != is->audio_packet_q.serial);

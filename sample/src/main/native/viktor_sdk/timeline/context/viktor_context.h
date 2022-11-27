@@ -139,6 +139,12 @@ typedef struct ViktorContext{
 
     SLAudio_ES *m_audioEs = nullptr;
 
+    /**
+     * 准备解码第二个片段的音频时，m_audioEs->close_audio有可能会卡死，
+     * 用改字段做标记，close_audio是，在等待的地方做判断使用
+     */
+    int is_audio_close = 0;
+
 
     JavaVM *m_javaVM = nullptr;
     jobject m_javaObj = nullptr;

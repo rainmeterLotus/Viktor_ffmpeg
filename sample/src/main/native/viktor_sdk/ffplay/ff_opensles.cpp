@@ -124,7 +124,7 @@ int SLAudio_ES::open_audio(const SDL_AudioSpec *desired, SDL_AudioSpec *obtained
         obtained->size = buffer_capacity;
         obtained->freq = format_pcm.samplesPerSec / 1000;
     }
-    VIKTOR_LOGI("SLAudio_ES::open_audio ok");
+    VIKTOR_LOGI("SLAudio_ES::open_audio ok audio_tid：%p",audio_tid);
     return buffer_capacity;
 }
 
@@ -294,16 +294,6 @@ void SLAudio_ES::audio_thread(void *context){
         next_buffer = opaque->buffer + next_buffer_index * bytes_per_buffer;
         next_buffer_index = (next_buffer_index + 1) % OPENSLES_BUFFERS;
 
-        /**
-         * 在ViktorAudioDecode::decode_start方法中会调用context->m_audioEs->close_audio()--->context->m_audioEs->close_audio()
-         * 会触发audio_thread方法执行，
-         * 下面audio_cblk调用ViktorAudioDecode::sdl_audio_callback--->audio_decode_frame--->frame_queue_peek_readable
-         * frame_queue_peek_readable有可能卡死,这里再判断一次是否已经中断了
-         */
-        if (opaque->abort_request){
-            VIKTOR_LOGI("SLAudio_ES::audio_cblk before is abort_request");
-            break;
-        }
         VIKTOR_LOGI("SLAudio_ES::audio_cblk start");
         audio_cblk(userdata,next_buffer,bytes_per_buffer);
         VIKTOR_LOGI("SLAudio_ES::audio_cblk end");

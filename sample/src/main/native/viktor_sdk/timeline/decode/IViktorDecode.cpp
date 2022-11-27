@@ -181,7 +181,7 @@ int IViktorDecode::decoder_decode_frame(ViktorContext *context, ViktorDecoder *d
 
             }
             VIKTOR_LOGD("decoder_decode_frame %s avcodec_send_packet end",media_type);
-            if (context->decode_state > 0) {
+            if (context->decode_state > 0 && d->packet_pending) {
                 av_packet_move_ref(&d->pkt, &pkt);
             }
 

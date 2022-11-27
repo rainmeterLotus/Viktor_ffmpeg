@@ -16,6 +16,8 @@ public:
 private:
     int audio_open(void *opaque, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, struct ViktorAudioParams *audio_hw_params);
     int SDL_OpenAudio(ViktorContext *context,const SDL_AudioSpec *desired, SDL_AudioSpec *obtained);
+
+    static VKFrame *sample_frame_queue_peek_readable(VKFrameQueue *f ,const int *is_audio_close);
     static int audio_thread(void *arg,void *context);
     static void sdl_audio_callback(void *opaque, uint8_t *stream, int len);
 

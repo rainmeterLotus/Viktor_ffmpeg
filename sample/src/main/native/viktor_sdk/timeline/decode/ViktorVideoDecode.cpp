@@ -6,7 +6,11 @@
 
 int ViktorVideoDecode::decode_start(ViktorContext *context,CClip *clip){
     int ret = 0;
-
+    VIKTOR_LOGE("decode_start video");
+    if(clip == current_clip){
+        VIKTOR_LOGE("decode_start video clip == current_clip,no need to start thread again");
+        return ret;
+    }
     if (clip->video_in_codec_ctx){
         VIKTOR_LOGE("decode_start video before &context->viddec:%p",&context->viddec);
         VIKTOR_LOGE("decode_start video before &context->viddec.decoder_tid:%p",context->viddec.decoder_tid);
