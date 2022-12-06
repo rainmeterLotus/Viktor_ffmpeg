@@ -14,7 +14,7 @@ Viktor_ffmpeg
 4.实现画中画功能<br>
 
 我的相关文章：<br>
-[FFmpeg编译脚本](https://github.com/rainmeterLotus/ffmpeg-android-custom)<br>
+[FFmpeg编译脚本项目](https://github.com/rainmeterLotus/ffmpeg-android-custom)<br>
 [FFmpeg编译4.3.1-ndk(21)](https://www.jianshu.com/p/db5ea587facc)<br>
 [FFmpeg之ffplay源码各个结构体中的serial字段分析](https://www.jianshu.com/p/8312e0e462ac)<br>
 FFmpeg官网关于ffmpeg的编译文章翻译[ffmpeg-android-maker](https://www.jianshu.com/p/c2f58e21f671)
